@@ -13,6 +13,7 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include "utils.hpp"
 
 using namespace Dynarmic;
 
@@ -21,7 +22,6 @@ using u16 = std::uint16_t;
 using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 
-constexpr std::uint32_t ENTRY_POINT = 0x00010a20;
 constexpr std::uint32_t RETURN_TO =   0x00000100;
 constexpr std::uint32_t MEMORY_SIZE = 5 * 1024 * 1024;
 
@@ -108,6 +108,9 @@ public:
 
 
 int main () {
+    ElfReader elf("tester_arm");
+    std::uint32_t ENTRY_POINT = elf.getSymbolAddress("_Z10findPrimesj");
+
     BenchEnvironment env;
     A32::UserConfig user_config;
     user_config.callbacks = &env;
@@ -115,22 +118,14 @@ int main () {
     user_config.fastmem_pointer = (void*)env.memory.data();
     A32::Jit jit{user_config};
 
-    std::ifstream elf_file( "tester_arm", std::ios::binary);
-    //  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
-    //  LOAD           0x000000 0x00010000 0x00010000 0x13db30 0x13db30 R E 0x10000
-    //  LOAD           0x13e1cc 0x0015e1cc 0x0015e1cc 0x05608 0x07c68 RW  0x10000
-
-    elf_file.seekg(0);
-    elf_file.read((char*)env.memory.data() + 0x00010000, 0x13db30);
-    elf_file.seekg(0x13e1cc);
-    elf_file.read((char*)env.memory.data() + 0x0015e1cc, 0x05608);
-    elf_file.close();
+    elf.load( [&env](auto data, auto size, auto vaddr) {
+        memcpy((char*)env.memory.data() + vaddr, data, size);
+      });
 
     jit.Regs()[13] = MEMORY_SIZE - 128;  //SP
     jit.Regs()[15] = ENTRY_POINT;  //PC
     jit.Regs()[14] = RETURN_TO;  //LR
     jit.Regs()[0] = 100000;  //R0
-    //jit.SetCpsr(0x000001d0); // User-mode
 
     while (!env.finished) {
         env.ticks_left = 1024;
