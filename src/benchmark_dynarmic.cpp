@@ -13,9 +13,11 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include "utils.hpp"
 
 using namespace Dynarmic;
+using namespace std;
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -23,7 +25,7 @@ using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 
 constexpr std::uint32_t RETURN_TO =   0x00000100;
-constexpr std::uint32_t MEMORY_SIZE = 5 * 1024 * 1024;
+constexpr std::uint32_t MEMORY_SIZE = 7 * 1024 * 1024;
 
 class BenchEnvironment final : public A32::UserCallbacks {
 public:
@@ -107,9 +109,14 @@ public:
 
 
 
-int main () {
+int main(int argc, char *argv[]) {
+    std::string benchmark;
+    uint32_t n = 0;
+    istringstream(argv[1]) >> benchmark;
+    istringstream(argv[2]) >> n;
+
     ElfReader elf("tester_arm");
-    std::uint32_t ENTRY_POINT = elf.getSymbolAddress("_Z10findPrimesj");
+    std::uint32_t ENTRY_POINT = elf.getSymbolAddress(benchmark=="primes" ? "_Z10findPrimesj" : "_Z7fractalj");
 
     BenchEnvironment env;
     A32::UserConfig user_config;
@@ -125,7 +132,7 @@ int main () {
     jit.Regs()[13] = MEMORY_SIZE - 128;  //SP
     jit.Regs()[15] = ENTRY_POINT;  //PC
     jit.Regs()[14] = RETURN_TO;  //LR
-    jit.Regs()[0] = 100000;  //R0
+    jit.Regs()[0] = n;  //R0
 
     while (!env.finished) {
         env.ticks_left = 1024;

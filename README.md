@@ -59,9 +59,12 @@ readelf -l tester_arm
 readelf -Ws tester_arm
 
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-time ./tester_x86 100000
-time ./benchmark_unicorn
-time ./benchmark_dynarmic
+time ./tester_x86 primes 100000
+time ./tester_x86 fractal 40
+time ./benchmark_unicorn primes 100000
+time ./benchmark_unicorn fractal 40
+time ./benchmark_dynarmic primes 100000
+time ./benchmark_dynarmic fractal 40
 
 # Documentation
 
@@ -70,3 +73,19 @@ understanding readelf : https://greek0.net/elf.html
 
 https://linuxhint.com/what-is-a-linux-system-call/
 https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+
+
+
+
+# rev.ng (not working)
+
+sudo apt-get install python3-pip
+pip3 install --user --force-reinstall https://github.com/revng/revng-orchestra/archive/master.zip
+export PATH="$HOME/.local/bin:$PATH"
+git clone https://github.com/revng/orchestra
+cd orchestra
+orc update
+orc install revng
+
+orc shell
+revng translate -O2 -o tester_arm_translated tester_arm
